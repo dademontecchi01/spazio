@@ -17,35 +17,34 @@
   h1 { font-size:1.05rem; font-weight:400; margin-bottom:44px; }
   .screen { display:none; max-width:480px; margin:0 auto; }
   .screen.on { display:block; }
-  /* menu principale: lista LightOS */
   .menu button { display:block; width:100%; text-align:left; background:#000; color:#fff;
                  font:inherit; font-size:1.7rem; padding:16px 0; cursor:pointer; }
   .menu button:active { background:#fff; color:#000; }
-  /* schermate strumento */
-  .back { background:#000; color:#fff; font:inherit; font-size:1.05rem; margin-bottom:36px; cursor:pointer; }
+  .back { background:#000; color:#fff; font:inherit; font-size:1.05rem; margin-bottom:28px; cursor:pointer; }
   .back:active { background:#fff; color:#000; }
-  #preview img, #preview video { width:100%; display:block; filter:grayscale(1); }
-  #preview audio { width:100%; margin:8px 0; filter:grayscale(1) invert(1); }
+  /* fotocamera in-app */
+  #camView { width:100%; max-height:62vh; object-fit:cover; display:block; background:#000; }
+  #camTime { font-size:2rem; margin:10px 0 0; font-variant-numeric:tabular-nums; display:none; }
+  /* anteprime (a colori, come sul LP3) */
+  #preview img, #preview video { width:100%; display:block; max-height:50vh; object-fit:contain; }
+  #preview audio { width:100%; margin:8px 0; }
   textarea { width:100%; margin-top:26px; background:#000; color:#fff; font:inherit;
              font-size:1.05rem; min-height:64px; outline:none; caret-color:#fff; resize:none; }
   textarea::placeholder { color:#666; }
-  .actions { margin-top:34px; }
+  .actions { margin-top:26px; }
   .actions button { display:block; width:100%; text-align:left; background:#000; color:#fff;
                     font:inherit; font-size:1.25rem; padding:13px 0; cursor:pointer; }
   .actions button:active { background:#fff; color:#000; }
   .dim { color:#666; }
-  .actions button.dim:active { background:#fff; color:#000; }
   #noteState { color:#666; font-size:.95rem; margin-top:10px; min-height:1.2em; }
-  /* registrazione */
-  #recScreen { text-align:left; }
   #recTime { font-size:3.4rem; font-weight:400; margin:60px 0; font-variant-numeric:tabular-nums; }
   #recLabel { animation:blink 1.2s step-end infinite; }
   @keyframes blink { 50% { opacity:0; } }
-  /* storico */
   #history { margin-top:64px; }
   #history .hd { color:#666; font-size:.9rem; margin-bottom:14px; }
   .item { padding:7px 0; font-size:1rem; color:#fff; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   .item span { color:#666; }
+  .ver { color:#333; font-size:.8rem; margin-top:40px; }
   #toast { position:fixed; left:0; right:0; bottom:0; background:#fff; color:#000; padding:16px 28px;
            font-size:1.05rem; transform:translateY(110%); transition:transform .22s; z-index:9; }
   #toast.show { transform:none; }
@@ -57,15 +56,28 @@
 <div id="home" class="screen on">
   <h1>spazio</h1>
   <div class="menu">
-    <button onclick="fotoIn.click()">foto</button>
-    <button onclick="videoIn.click()">video</button>
+    <button onclick="openCam('foto')">foto</button>
+    <button onclick="openCam('video')">video</button>
     <button onclick="startRec('main')">voce</button>
+    <button onclick="openNote()">note</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
+  <div class="ver">v3</div>
 </div>
 
-<input type="file" id="fotoIn" accept="image/*" capture="environment">
-<input type="file" id="videoIn" accept="video/*" capture="environment">
+<input type="file" id="fotoGal" accept="image/*">
+<input type="file" id="videoGal" accept="video/*">
+
+<div id="camScreen" class="screen">
+  <button class="back" onclick="closeCam()">&larr; indietro</button>
+  <video id="camView" autoplay playsinline muted></video>
+  <div id="camTime">0:00</div>
+  <div class="actions">
+    <button id="camMain" onclick="camAction()">scatta</button>
+    <button id="camFlip" onclick="flipCam()">gira camera</button>
+    <button id="camGal" class="dim" onclick="camGallery()">scegli dalla galleria</button>
+  </div>
+</div>
 
 <div id="recScreen" class="screen">
   <h1 id="recLabel">registrazione</h1>
@@ -93,25 +105,119 @@
 <script>
 let current = null, voiceNote = null;
 let rec = null, recChunks = [], recMode = null, recT0 = 0, recTimer = null;
+let camStream = null, camMode = 'foto', camFacing = 'environment';
+let camRec = null, camChunks = [], camT0 = 0, camTimer = null;
 const $ = id => document.getElementById(id);
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
+function setPreview(blob, kind){
+  try {
+    const url = URL.createObjectURL(blob);
+    $('preview').innerHTML =
+      kind==='foto'  ? `<img src="${url}">` :
+      kind==='video' ? `<video src="${url}" controls playsinline preload="metadata"></video>` :
+      kind==='voce'  ? `<audio src="${url}" controls></audio>` : '';
+  } catch(e){ $('preview').innerHTML = '<div class="dim">anteprima non disponibile</div>'; }
+}
 
-// ---- foto / video (fotocamera nativa) ----
-fotoIn.onchange = e => pick(e,'foto');
-videoIn.onchange = e => pick(e,'video');
-function pick(e, kind){
-  const f = e.target.files[0]; if(!f) return;
-  const ext = (f.name.match(/\.\w+$/) || [kind==='foto'?'.jpg':'.mp4'])[0];
-  current = { blob:f, ext, kind };
-  const url = URL.createObjectURL(f);
-  $('preview').innerHTML = kind==='foto' ? `<img src="${url}">` : `<video src="${url}" controls playsinline></video>`;
-  show('editorScreen');
+/* ---------- fotocamera in-app (stile LightOS: mirino + comandi testuali) ---------- */
+async function openCam(mode){
+  camMode = mode;
+  $('camMain').textContent = mode==='foto' ? 'scatta' : 'avvia registrazione';
+  $('camTime').style.display = 'none'; $('camTime').textContent = '0:00';
+  show('camScreen');
+  await startStream();
+}
+async function startStream(){
+  stopStream();
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: camFacing, width:{ideal:1920}, height:{ideal:1080} },
+      audio: camMode === 'video'
+    });
+    $('camView').srcObject = camStream;
+  } catch(e){
+    toast('fotocamera non disponibile — usa la galleria');
+  }
+}
+function stopStream(){ if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; $('camView').srcObject=null; } }
+function closeCam(){
+  if(camRec){ try{ camRec.onstop=null; camRec.stop(); }catch(e){} camRec=null; clearInterval(camTimer); }
+  stopStream(); show('home');
+}
+async function flipCam(){ if(camRec) return; camFacing = camFacing==='environment' ? 'user' : 'environment'; await startStream(); }
+function camGallery(){ (camMode==='foto' ? fotoGal : videoGal).click(); }
+function camAction(){ camMode==='foto' ? snap() : (camRec ? stopVid() : startVid()); }
+
+function snap(){
+  if(!camStream){ toast('fotocamera non attiva'); return; }
+  const v = $('camView');
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth || 1280; c.height = v.videoHeight || 720;
+  c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+  c.toBlob(b => {
+    if(!b){ toast('scatto fallito'); return; }
+    stopStream();
+    current = { blob:b, ext:'.jpg', kind:'foto' };
+    setPreview(b,'foto'); show('editorScreen');
+  }, 'image/jpeg', 0.92);
+}
+function startVid(){
+  if(!camStream){ toast('fotocamera non attiva'); return; }
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus'
+             : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : '';
+  try { camRec = new MediaRecorder(camStream, mime ? {mimeType:mime} : {}); }
+  catch(e){ toast('registrazione video non supportata'); return; }
+  camChunks = [];
+  camRec.ondataavailable = e => camChunks.push(e.data);
+  camRec.start(250);
+  camT0 = Date.now();
+  $('camMain').textContent = 'stop';
+  $('camFlip').style.display = 'none'; $('camGal').style.display = 'none';
+  $('camTime').style.display = 'block';
+  camTimer = setInterval(()=>{
+    const s = Math.floor((Date.now()-camT0)/1000);
+    $('camTime').textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  }, 250);
+}
+function stopVid(){
+  clearInterval(camTimer);
+  $('camFlip').style.display = ''; $('camGal').style.display = '';
+  camRec.onstop = () => {
+    const blob = new Blob(camChunks, { type: camRec.mimeType || 'video/webm' });
+    camRec = null; stopStream();
+    if(!blob.size){ toast('registrazione vuota'); show('home'); return; }
+    current = { blob, ext:'.webm', kind:'video' };
+    setPreview(blob,'video'); show('editorScreen');
+  };
+  camRec.stop();
+}
+
+/* ---------- galleria (opzione secondaria) ---------- */
+fotoGal.onchange = e => pickGal(e,'foto');
+videoGal.onchange = e => pickGal(e,'video');
+function pickGal(e, kind){
+  try {
+    const f = e.target.files[0]; if(!f) return;
+    stopStream();
+    const ext = (f.name.match(/\.\w+$/) || [kind==='foto'?'.jpg':'.mp4'])[0];
+    current = { blob:f, ext, kind };
+    setPreview(f, kind); show('editorScreen');
+  } catch(err){ toast('file non leggibile'); show('home'); }
   e.target.value = '';
 }
 
-// ---- registratore ----
+/* ---------- note di testo ---------- */
+function openNote(){
+  current = { blob:null, ext:'.txt', kind:'nota' };
+  $('preview').innerHTML = '';
+  $('caption').placeholder = 'scrivi la nota…';
+  show('editorScreen');
+  $('caption').focus();
+}
+
+/* ---------- registratore vocale ---------- */
 async function startRec(mode){
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
@@ -121,7 +227,7 @@ async function startRec(mode){
     recChunks = []; recMode = mode;
     rec.ondataavailable = e => recChunks.push(e.data);
     rec._stream = stream;
-    rec.start();
+    rec.start(250);
     recT0 = Date.now();
     show('recScreen');
     recTimer = setInterval(()=>{
@@ -140,8 +246,7 @@ function stopRec(keep){
     if(!keep){ recMode==='main' ? show('home') : show('editorScreen'); rec=null; return; }
     if(recMode==='main'){
       current = { blob, ext, kind:'voce' };
-      $('preview').innerHTML = `<audio src="${URL.createObjectURL(blob)}" controls></audio>`;
-      show('editorScreen');
+      setPreview(blob,'voce'); show('editorScreen');
     } else {
       voiceNote = { blob, ext };
       $('noteState').textContent = 'nota vocale allegata · ' + $('recTime').textContent;
@@ -157,7 +262,7 @@ function toggleNote(){
   else startRec('attach');
 }
 
-// ---- salvataggio ----
+/* ---------- salvataggio ---------- */
 function stamp(){
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
@@ -174,9 +279,9 @@ async function saveBlob(blob, name){
       try {
         await Filesystem.writeFile({ path:'spazio-inbox/'+name, data, directory, recursive:true });
         return true;
-      } catch(e){ /* prova la prossima */ }
+      } catch(e){ }
     }
-    throw new Error('permessi archivio mancanti');
+    throw new Error('storage');
   } else {
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob); a.download=name;
@@ -187,10 +292,11 @@ async function saveBlob(blob, name){
 }
 async function salva(){
   if(!current) return;
+  const cap = $('caption').value.trim();
+  if(current.kind==='nota' && !cap && !voiceNote){ toast('scrivi qualcosa o allega una voce'); return; }
   const stem = 'es_'+stamp();
   try {
-    await saveBlob(current.blob, stem+current.ext);
-    const cap = $('caption').value.trim();
+    if(current.blob) await saveBlob(current.blob, stem+current.ext);
     if(cap) await saveBlob(new Blob([cap+'\n\n['+current.kind+' · '+new Date().toISOString()+']'],{type:'text/plain'}), stem+'.txt');
     if(voiceNote) await saveBlob(voiceNote.blob, stem+'_nota'+voiceNote.ext);
     addHistory({stem, kind:current.kind, cap});
@@ -201,12 +307,16 @@ async function salva(){
   }
 }
 
-// ---- UI ----
-function reset(){ current=null; voiceNote=null; $('caption').value=''; $('noteState').textContent='';
-                  $('noteBtn').textContent='aggiungi nota vocale'; $('preview').innerHTML=''; show('home'); }
+/* ---------- UI ---------- */
+function reset(){
+  current=null; voiceNote=null;
+  $('caption').value=''; $('caption').placeholder='didascalia…';
+  $('noteState').textContent=''; $('noteBtn').textContent='aggiungi nota vocale';
+  $('preview').innerHTML=''; stopStream(); show('home');
+}
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
 
-const KIND = { foto:'foto', video:'video', voce:'voce' };
+const KIND = { foto:'foto', video:'video', voce:'voce', nota:'nota' };
 function addHistory(it){ const h=JSON.parse(localStorage.h||'[]'); h.unshift(it); localStorage.h=JSON.stringify(h.slice(0,20)); renderHistory(); }
 function renderHistory(){
   const h=JSON.parse(localStorage.h||'[]');
