@@ -1,0 +1,15 @@
+{
+  "name": "spazio",
+  "version": "2.0.0",
+  "description": "🫧 Spazio — cattura l'inaspettato. App di cattura per il second brain.",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/filesystem": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/assets": "^3.0.5"
+  }
+}

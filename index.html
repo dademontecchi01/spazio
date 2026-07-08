@@ -4,213 +4,219 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<title>Spazio</title>
+<title>spazio</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <style>
-  :root { --fg:#fff; --bg:#000; --dim:#888; --line:#333; }
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body { background:var(--bg); color:var(--fg); font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
-         min-height:100vh; padding:max(16px,env(safe-area-inset-top)) 16px 32px; }
-  header { text-align:center; padding:18px 0 6px; }
-  h1 { font-size:1.5rem; letter-spacing:.45em; font-weight:300; text-indent:.45em; }
-  .tag { color:var(--dim); font-size:.75rem; margin-top:4px; letter-spacing:.08em; }
-  main { max-width:480px; margin:0 auto; }
-  .btns { display:flex; flex-direction:column; gap:14px; margin-top:26px; }
-  .big { display:flex; align-items:center; gap:16px; width:100%; padding:22px 20px;
-         background:var(--bg); color:var(--fg); border:2px solid var(--fg); border-radius:16px;
-         font-size:1.25rem; font-weight:600; cursor:pointer; }
-  .big:active { background:var(--fg); color:var(--bg); }
-  .big .ico { font-size:1.7rem; }
-  .hint { color:var(--dim); font-size:.72rem; font-weight:400; display:block; margin-top:3px; }
-  /* editor */
-  #editor { display:none; margin-top:22px; border:1px solid var(--line); border-radius:16px; padding:16px; }
-  #preview img, #preview video { width:100%; border-radius:10px; display:block; }
-  #preview audio { width:100%; margin:6px 0; }
-  textarea { width:100%; margin-top:12px; padding:12px; background:#111; color:var(--fg);
-             border:1px solid var(--line); border-radius:10px; font-size:1rem; min-height:70px; }
-  .row { display:flex; gap:10px; margin-top:12px; }
-  .row button { flex:1; padding:15px 8px; border-radius:12px; font-size:1rem; font-weight:600;
-                border:1px solid var(--fg); background:var(--bg); color:var(--fg); cursor:pointer; }
-  .row button:active { background:var(--fg); color:var(--bg); }
-  .row .primary { background:var(--fg); color:var(--bg); }
-  .row .ghost { border-color:var(--line); color:var(--dim); }
-  #noteState { color:var(--dim); font-size:.8rem; margin-top:8px; min-height:1em; }
-  .rec { color:#f55 !important; border-color:#f55 !important; }
-  /* recorder overlay */
-  #recUI { display:none; text-align:center; margin-top:22px; border:1px solid var(--line);
-           border-radius:16px; padding:28px 16px; }
-  #recTime { font-size:2.6rem; font-variant-numeric:tabular-nums; letter-spacing:.1em; margin:10px 0 18px; }
-  .pulse { display:inline-block; width:12px; height:12px; background:#f55; border-radius:50%;
-           animation:p 1s infinite; margin-right:8px; vertical-align:middle; }
-  @keyframes p { 50% { opacity:.2 } }
-  /* history + toast */
-  #history { margin-top:30px; }
-  #history h2 { font-size:.8rem; color:var(--dim); letter-spacing:.15em; font-weight:400; margin-bottom:10px; }
-  .item { display:flex; gap:10px; align-items:center; padding:10px 4px; border-bottom:1px solid #1a1a1a;
-          font-size:.9rem; color:#ccc; }
-  .item .k { font-size:1.1rem; }
-  .item .c { color:var(--dim); font-size:.78rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #toast { position:fixed; left:50%; bottom:34px; transform:translateX(-50%) translateY(120px);
-           background:var(--fg); color:var(--bg); padding:13px 22px; border-radius:30px; font-weight:600;
-           transition:transform .25s; max-width:88vw; text-align:center; z-index:9; }
-  #toast.show { transform:translateX(-50%) translateY(0); }
+  @font-face { font-family:'Arimo'; src:url('fonts/arimo.woff2') format('woff2'); font-weight:400; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+      border:none; border-radius:0; letter-spacing:0; }
+  html,body { background:#000; }
+  body { color:#fff; font-family:'Arimo',Helvetica,Arial,sans-serif; min-height:100vh;
+         padding:calc(24px + env(safe-area-inset-top)) 28px 40px; font-size:17px; }
+  h1 { font-size:1.05rem; font-weight:400; margin-bottom:44px; }
+  .screen { display:none; max-width:480px; margin:0 auto; }
+  .screen.on { display:block; }
+  /* menu principale: lista LightOS */
+  .menu button { display:block; width:100%; text-align:left; background:#000; color:#fff;
+                 font:inherit; font-size:1.7rem; padding:16px 0; cursor:pointer; }
+  .menu button:active { background:#fff; color:#000; }
+  /* schermate strumento */
+  .back { background:#000; color:#fff; font:inherit; font-size:1.05rem; margin-bottom:36px; cursor:pointer; }
+  .back:active { background:#fff; color:#000; }
+  #preview img, #preview video { width:100%; display:block; filter:grayscale(1); }
+  #preview audio { width:100%; margin:8px 0; filter:grayscale(1) invert(1); }
+  textarea { width:100%; margin-top:26px; background:#000; color:#fff; font:inherit;
+             font-size:1.05rem; min-height:64px; outline:none; caret-color:#fff; resize:none; }
+  textarea::placeholder { color:#666; }
+  .actions { margin-top:34px; }
+  .actions button { display:block; width:100%; text-align:left; background:#000; color:#fff;
+                    font:inherit; font-size:1.25rem; padding:13px 0; cursor:pointer; }
+  .actions button:active { background:#fff; color:#000; }
+  .dim { color:#666; }
+  .actions button.dim:active { background:#fff; color:#000; }
+  #noteState { color:#666; font-size:.95rem; margin-top:10px; min-height:1.2em; }
+  /* registrazione */
+  #recScreen { text-align:left; }
+  #recTime { font-size:3.4rem; font-weight:400; margin:60px 0; font-variant-numeric:tabular-nums; }
+  #recLabel { animation:blink 1.2s step-end infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  /* storico */
+  #history { margin-top:64px; }
+  #history .hd { color:#666; font-size:.9rem; margin-bottom:14px; }
+  .item { padding:7px 0; font-size:1rem; color:#fff; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .item span { color:#666; }
+  #toast { position:fixed; left:0; right:0; bottom:0; background:#fff; color:#000; padding:16px 28px;
+           font-size:1.05rem; transform:translateY(110%); transition:transform .22s; z-index:9; }
+  #toast.show { transform:none; }
   input[type=file] { display:none; }
 </style>
 </head>
 <body>
-<header>
-  <h1>SPAZIO</h1>
-  <div class="tag">cattura l'inaspettato · finisce nell'inbox</div>
-</header>
-<main>
-  <div class="btns" id="mainBtns">
-    <button class="big" onclick="fotoIn.click()"><span class="ico">📷</span><span>Foto<span class="hint">apre la fotocamera</span></span></button>
-    <button class="big" onclick="videoIn.click()"><span class="ico">🎥</span><span>Video<span class="hint">apre la videocamera</span></span></button>
-    <button class="big" onclick="startRec('main')"><span class="ico">🎙️</span><span>Nota vocale<span class="hint">registra qui, trascrivo io al Mac</span></span></button>
+
+<div id="home" class="screen on">
+  <h1>spazio</h1>
+  <div class="menu">
+    <button onclick="fotoIn.click()">foto</button>
+    <button onclick="videoIn.click()">video</button>
+    <button onclick="startRec('main')">voce</button>
   </div>
+  <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
+</div>
 
-  <input type="file" id="fotoIn" accept="image/*" capture="environment">
-  <input type="file" id="videoIn" accept="video/*" capture="environment">
+<input type="file" id="fotoIn" accept="image/*" capture="environment">
+<input type="file" id="videoIn" accept="video/*" capture="environment">
 
-  <div id="recUI">
-    <div><span class="pulse"></span>REC</div>
-    <div id="recTime">0:00</div>
-    <div class="row">
-      <button class="primary" onclick="stopRec(true)">✓ Fatto</button>
-      <button class="ghost" onclick="stopRec(false)">Annulla</button>
-    </div>
+<div id="recScreen" class="screen">
+  <h1 id="recLabel">registrazione</h1>
+  <div id="recTime">0:00</div>
+  <div class="actions">
+    <button onclick="stopRec(true)">fatto</button>
+    <button class="dim" onclick="stopRec(false)">annulla</button>
   </div>
+</div>
 
-  <div id="editor">
-    <div id="preview"></div>
-    <textarea id="caption" placeholder="Didascalia… (cosa ti ha colpito?)"></textarea>
-    <div class="row">
-      <button id="noteBtn" onclick="toggleNote()">🎙️ Aggiungi nota vocale</button>
-    </div>
-    <div id="noteState"></div>
-    <div class="row">
-      <button class="primary" onclick="salva()">💾 Salva</button>
-      <button class="ghost" onclick="reset()">Annulla</button>
-    </div>
+<div id="editorScreen" class="screen">
+  <button class="back" onclick="reset()">&larr; indietro</button>
+  <div id="preview"></div>
+  <textarea id="caption" placeholder="didascalia…" rows="2"></textarea>
+  <div id="noteState"></div>
+  <div class="actions">
+    <button id="noteBtn" onclick="toggleNote()">aggiungi nota vocale</button>
+    <button onclick="salva()">salva</button>
+    <button class="dim" onclick="reset()">annulla</button>
   </div>
+</div>
 
-  <div id="history"><h2>CATTURE RECENTI</h2><div id="items"></div></div>
-</main>
 <div id="toast"></div>
 
 <script>
-let current = null;        // {blob, ext, kind}
-let voiceNote = null;      // blob nota vocale allegata
+let current = null, voiceNote = null;
 let rec = null, recChunks = [], recMode = null, recT0 = 0, recTimer = null;
-
 const $ = id => document.getElementById(id);
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 
-// ---- input foto/video ----
-fotoIn.onchange = e => pick(e, 'foto');
-videoIn.onchange = e => pick(e, 'video');
-function pick(e, kind) {
-  const f = e.target.files[0]; if (!f) return;
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
+
+// ---- foto / video (fotocamera nativa) ----
+fotoIn.onchange = e => pick(e,'foto');
+videoIn.onchange = e => pick(e,'video');
+function pick(e, kind){
+  const f = e.target.files[0]; if(!f) return;
   const ext = (f.name.match(/\.\w+$/) || [kind==='foto'?'.jpg':'.mp4'])[0];
   current = { blob:f, ext, kind };
   const url = URL.createObjectURL(f);
-  $('preview').innerHTML = kind==='foto'
-    ? `<img src="${url}">`
-    : `<video src="${url}" controls playsinline></video>`;
-  openEditor();
+  $('preview').innerHTML = kind==='foto' ? `<img src="${url}">` : `<video src="${url}" controls playsinline></video>`;
+  show('editorScreen');
   e.target.value = '';
 }
 
 // ---- registratore ----
-async function startRec(mode) {
+async function startRec(mode){
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
     const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
                : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
-    rec = new MediaRecorder(stream, mime ? { mimeType:mime } : {});
+    rec = new MediaRecorder(stream, mime ? {mimeType:mime} : {});
     recChunks = []; recMode = mode;
     rec.ondataavailable = e => recChunks.push(e.data);
-    rec.onstop = () => stream.getTracks().forEach(t => t.stop());
+    rec._stream = stream;
     rec.start();
     recT0 = Date.now();
-    $('mainBtns').style.display = 'none'; $('editor').style.display = 'none';
-    $('recUI').style.display = 'block';
-    recTimer = setInterval(() => {
+    show('recScreen');
+    recTimer = setInterval(()=>{
       const s = Math.floor((Date.now()-recT0)/1000);
-      $('recTime').textContent = Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
-    }, 250);
-  } catch(err) { toast('Microfono non disponibile: ' + err.name); }
+      $('recTime').textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+    },250);
+  } catch(err){ toast('microfono non disponibile'); }
 }
-function stopRec(keep) {
+function stopRec(keep){
   clearInterval(recTimer);
-  if (!rec) return;
+  if(!rec) return;
   rec.onstop = () => {
-    rec.stream && rec.stream.getTracks().forEach(t=>t.stop());
-    const blob = new Blob(recChunks, { type: rec.mimeType || 'audio/webm' });
+    rec._stream.getTracks().forEach(t=>t.stop());
+    const blob = new Blob(recChunks, {type: rec.mimeType || 'audio/webm'});
     const ext = (rec.mimeType||'').includes('mp4') ? '.m4a' : '.webm';
-    $('recUI').style.display = 'none';
-    if (!keep) { recMode==='main' ? home() : openEditor(); rec=null; return; }
-    if (recMode === 'main') {           // nota vocale come cattura a sé
+    if(!keep){ recMode==='main' ? show('home') : show('editorScreen'); rec=null; return; }
+    if(recMode==='main'){
       current = { blob, ext, kind:'voce' };
       $('preview').innerHTML = `<audio src="${URL.createObjectURL(blob)}" controls></audio>`;
-      openEditor();
-    } else {                            // nota vocale allegata a foto/video
+      show('editorScreen');
+    } else {
       voiceNote = { blob, ext };
-      $('noteState').textContent = '🎙️ Nota vocale allegata (' + $('recTime').textContent + ')';
-      $('noteBtn').textContent = '🗑️ Rimuovi nota vocale';
-      openEditor();
+      $('noteState').textContent = 'nota vocale allegata · ' + $('recTime').textContent;
+      $('noteBtn').textContent = 'rimuovi nota vocale';
+      show('editorScreen');
     }
     rec = null;
   };
   rec.stop();
 }
-function toggleNote() {
-  if (voiceNote) { voiceNote = null; $('noteState').textContent=''; $('noteBtn').textContent='🎙️ Aggiungi nota vocale'; }
+function toggleNote(){
+  if(voiceNote){ voiceNote=null; $('noteState').textContent=''; $('noteBtn').textContent='aggiungi nota vocale'; }
   else startRec('attach');
 }
 
-// ---- salvataggio (download → cartella sincronizzata) ----
-function stamp() {
-  const d = new Date(), p = n => String(n).padStart(2,'0');
-  return d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+// ---- salvataggio ----
+function stamp(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
 }
-function dl(blob, name) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
+function blobToB64(blob){
+  return new Promise((res,rej)=>{ const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); });
 }
-function salva() {
-  if (!current) return;
-  const stem = 'es_' + stamp();
-  dl(current.blob, stem + current.ext);
-  const cap = $('caption').value.trim();
-  if (cap) dl(new Blob([cap + '\n\n[' + current.kind + ' · ' + new Date().toISOString() + ']'], {type:'text/plain'}), stem + '.txt');
-  if (voiceNote) setTimeout(() => dl(voiceNote.blob, stem + '_nota' + voiceNote.ext), 400);
-  addHistory({ stem, kind: current.kind, cap });
-  toast('Salvato ✓ arriverà nell\'inbox');
-  reset();
+async function saveBlob(blob, name){
+  if(NATIVE){
+    const Filesystem = Capacitor.Plugins.Filesystem;
+    const data = await blobToB64(blob);
+    for(const directory of ['EXTERNAL_STORAGE','DOCUMENTS']){
+      try {
+        await Filesystem.writeFile({ path:'spazio-inbox/'+name, data, directory, recursive:true });
+        return true;
+      } catch(e){ /* prova la prossima */ }
+    }
+    throw new Error('permessi archivio mancanti');
+  } else {
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},3000);
+    return true;
+  }
+}
+async function salva(){
+  if(!current) return;
+  const stem = 'es_'+stamp();
+  try {
+    await saveBlob(current.blob, stem+current.ext);
+    const cap = $('caption').value.trim();
+    if(cap) await saveBlob(new Blob([cap+'\n\n['+current.kind+' · '+new Date().toISOString()+']'],{type:'text/plain'}), stem+'.txt');
+    if(voiceNote) await saveBlob(voiceNote.blob, stem+'_nota'+voiceNote.ext);
+    addHistory({stem, kind:current.kind, cap});
+    toast('salvato — in coda per l\'inbox');
+    reset();
+  } catch(e){
+    toast(NATIVE ? 'concedi "accesso a tutti i file" nelle impostazioni app' : 'salvataggio fallito');
+  }
 }
 
-// ---- UI helpers ----
-function openEditor(){ $('mainBtns').style.display='none'; $('recUI').style.display='none'; $('editor').style.display='block'; }
-function home(){ $('mainBtns').style.display='flex'; $('editor').style.display='none'; $('recUI').style.display='none'; }
+// ---- UI ----
 function reset(){ current=null; voiceNote=null; $('caption').value=''; $('noteState').textContent='';
-                  $('noteBtn').textContent='🎙️ Aggiungi nota vocale'; $('preview').innerHTML=''; home(); }
+                  $('noteBtn').textContent='aggiungi nota vocale'; $('preview').innerHTML=''; show('home'); }
 function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
 
-// ---- storico (solo metadati, localStorage) ----
-const KIND_ICO = { foto:'📷', video:'🎥', voce:'🎙️' };
-function addHistory(it){ const h = JSON.parse(localStorage.h||'[]'); h.unshift(it); localStorage.h = JSON.stringify(h.slice(0,20)); renderHistory(); }
+const KIND = { foto:'foto', video:'video', voce:'voce' };
+function addHistory(it){ const h=JSON.parse(localStorage.h||'[]'); h.unshift(it); localStorage.h=JSON.stringify(h.slice(0,20)); renderHistory(); }
 function renderHistory(){
-  const h = JSON.parse(localStorage.h||'[]');
-  $('items').innerHTML = h.map(i =>
-    `<div class="item"><span class="k">${KIND_ICO[i.kind]||'📄'}</span><span>${i.stem.slice(3,11)} ${i.stem.slice(12,14)}:${i.stem.slice(14,16)}</span><span class="c">${i.cap||''}</span></div>`
-  ).join('') || '<div class="item c">ancora nessuna cattura</div>';
+  const h=JSON.parse(localStorage.h||'[]');
+  $('items').innerHTML = h.map(i=>
+    `<div class="item">${KIND[i.kind]||'file'} <span>${i.stem.slice(3,11)} ${i.stem.slice(12,14)}:${i.stem.slice(14,16)}${i.cap?' · '+i.cap:''}</span></div>`
+  ).join('') || '<div class="item"><span>ancora niente</span></div>';
 }
 renderHistory();
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+if(!NATIVE && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
 </html>

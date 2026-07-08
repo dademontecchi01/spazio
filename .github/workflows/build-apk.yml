@@ -1,0 +1,68 @@
+name: build-apk
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install deps
+        run: npm install
+
+      - name: Stage web assets
+        run: |
+          mkdir -p www
+          cp -r index.html manifest.json icon-192.png icon-512.png fonts www/
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Patch AndroidManifest (permessi)
+        run: |
+          M=android/app/src/main/AndroidManifest.xml
+          perl -0pi -e 's|(\s*)<application|\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>\n    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>\n$1<application|' "$M"
+          grep -c uses-permission "$M"
+
+      - name: App icons (best effort)
+        run: |
+          mkdir -p assets
+          cp icon-512.png assets/logo.png
+          npx @capacitor/assets generate --android --assetPath assets \
+            --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' \
+            --splashBackgroundColor '#000000' --splashBackgroundColorDark '#000000' || echo "icone default"
+
+      - name: Sync
+        run: npx cap sync android
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk spazio.apk
+          gh release delete latest --cleanup-tag -y || true
+          gh release create latest spazio.apk \
+            -t "spazio — APK" \
+            -n "Ultima build automatica. Scarica spazio.apk sul telefono e installa (sideload)."
