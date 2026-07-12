@@ -45,20 +45,6 @@
   #toast.show { transform:none; }
   input[type=file] { display:none; }
 
-  /* ---- camera live ---- */
-  #cam { position:fixed; inset:0; background:#000; z-index:40; display:none; flex-direction:column; }
-  #cam.on { display:flex; }
-  #camVideo { flex:1; width:100%; object-fit:cover; background:#000; }
-  #camBar { display:flex; align-items:center; justify-content:space-around;
-            padding:18px 20px calc(24px + env(safe-area-inset-bottom)); background:#000; }
-  .cbtn { background:#000; color:#fff; font:inherit; font-size:1rem; cursor:pointer; padding:8px 10px; }
-  #shutter { width:66px; height:66px; border-radius:50%; background:#fff; border:4px solid #444; cursor:pointer; }
-  #shutter.rec { background:#e33; }
-  #camHint { position:absolute; top:calc(14px + env(safe-area-inset-top)); left:0; right:0;
-             text-align:center; color:#fff; font-size:.95rem; text-shadow:0 1px 4px #000; }
-  #camTime { position:absolute; top:calc(44px + env(safe-area-inset-top)); left:0; right:0; text-align:center;
-             color:#e33; font-size:1.4rem; font-variant-numeric:tabular-nums; text-shadow:0 1px 4px #000; display:none; }
-
   /* ---- annotazione foto ---- */
   #annWrap { position:relative; width:100%; margin-bottom:6px; }
   #annCanvas { width:100%; display:block; touch-action:none; max-height:46vh; }
@@ -83,29 +69,20 @@
 <div id="home" class="screen on">
   <h1>spazio</h1>
   <div class="menu">
-    <button onclick="openCamera()">camera</button>
+    <button onclick="cameraIn.click()">camera</button>
     <button onclick="albumIn.click()">album</button>
     <button onclick="startRec('main')">voce</button>
     <button onclick="openNote()">note</button>
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v5</div>
+  <div class="ver">v6</div>
 </div>
 
+<!-- "camera" apre l'app fotocamera di sistema (Fotocamera / Snapdragon) via capture;
+     "album" pesca da media esistenti. La foto che torna passa all'editor di annotazione. -->
+<input type="file" id="cameraIn" accept="image/*,video/*" capture="environment">
 <input type="file" id="albumIn" accept="image/*,video/*">
-
-<!-- CAMERA LIVE -->
-<div id="cam">
-  <div id="camHint">tocca il cerchio per la foto · tieni premuto per il video</div>
-  <div id="camTime">0:00</div>
-  <video id="camVideo" playsinline autoplay muted></video>
-  <div id="camBar">
-    <button class="cbtn" onclick="closeCamera()">chiudi</button>
-    <div id="shutter"></div>
-    <button class="cbtn" onclick="flipCamera()">gira</button>
-  </div>
-</div>
 
 <!-- VOCE -->
 <div id="recScreen" class="screen">
@@ -171,85 +148,21 @@ let rec = null, recChunks = [], recMode = null, recT0 = 0, recTimer = null;
 
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
 
-/* ================= CAMERA LIVE (getUserMedia) ================= */
-let camStream = null, camFacing = 'environment';
-let vrec = null, vchunks = [], vtimer = null, vt0 = 0, holdTimer = null, isRecording = false;
-
-async function openCamera(){
-  $('cam').classList.add('on');
-  await startStream();
-}
-async function startStream(){
+/* ============ INGRESSO FILE: camera di sistema + album ============ */
+/* "camera" apre l'app fotocamera nativa (Fotocamera / Snapdragon Camera) via
+   <input capture>; "album" pesca da media esistenti. Il file che torna entra
+   nell'editor: foto → annotazione (penna/evidenziatore + didascalia), video → anteprima. */
+function handleFile(f){
   try {
-    if(camStream) camStream.getTracks().forEach(t=>t.stop());
-    camStream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode: camFacing }, audio:true
-    });
-    $('camVideo').srcObject = camStream;
-  } catch(e){ toast('fotocamera non disponibile'); closeCamera(); }
-}
-async function flipCamera(){ camFacing = camFacing==='environment' ? 'user' : 'environment'; await startStream(); }
-function closeCamera(){
-  if(isRecording) stopVideo(false);
-  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
-  $('cam').classList.remove('on');
-}
-/* foto = tap corto · video = tieni premuto */
-const shutter = $('shutter');
-shutter.addEventListener('pointerdown', ()=>{ holdTimer = setTimeout(startVideo, 300); });
-shutter.addEventListener('pointerup', ()=>{
-  clearTimeout(holdTimer);
-  if(isRecording) stopVideo(true); else takePhoto();
-});
-shutter.addEventListener('pointerleave', ()=>{ clearTimeout(holdTimer); });
-
-function takePhoto(){
-  const v = $('camVideo');
-  const c = document.createElement('canvas');
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
-  c.toBlob(b=>{
-    current = { blob:b, ext:'.jpg', kind:'foto' };
-    closeCamera(); openEditor('foto');
-  }, 'image/jpeg', 0.92);
-}
-function startVideo(){
-  if(!camStream) return;
-  const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
-             : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus'
-             : 'video/webm';
-  vrec = new MediaRecorder(camStream, {mimeType:mime}); vchunks=[];
-  vrec.ondataavailable = e => vchunks.push(e.data);
-  vrec.start(250); isRecording = true; shutter.classList.add('rec');
-  $('camHint').style.display='none'; $('camTime').style.display='block'; vt0=Date.now();
-  vtimer = setInterval(()=>{ const s=Math.floor((Date.now()-vt0)/1000);
-    $('camTime').textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); },250);
-}
-function stopVideo(keep){
-  if(!vrec) return; clearInterval(vtimer);
-  const mime = vrec.mimeType || 'video/webm';
-  vrec.onstop = ()=>{
-    isRecording=false; shutter.classList.remove('rec');
-    $('camHint').style.display='block'; $('camTime').style.display='none';
-    const blob = new Blob(vchunks, {type:mime});
-    const ext = mime.includes('mp4') ? '.mp4' : '.webm';
-    vrec=null;
-    if(keep){ current={ blob, ext, kind:'video' }; closeCamera(); openEditor('video'); }
-  };
-  vrec.stop();
-}
-
-/* ================= ALBUM ================= */
-$('albumIn').onchange = e => {
-  try {
-    const f = e.target.files[0]; if(!f) return;
+    if(!f) return;
     const kind = (f.type||'').startsWith('video') ? 'video' : 'foto';
     const ext = (f.name.match(/\.\w+$/) || [kind==='foto'?'.jpg':'.mp4'])[0];
     current = { blob:f, ext, kind };
     openEditor(kind);
   } catch(err){ toast('file non leggibile'); }
-  e.target.value = '';
-};
+}
+$('cameraIn').onchange = e => { handleFile(e.target.files[0]); e.target.value=''; };
+$('albumIn').onchange  = e => { handleFile(e.target.files[0]); e.target.value=''; };
 
 /* ================= EDITOR + ANNOTAZIONE ================= */
 function openEditor(kind){
