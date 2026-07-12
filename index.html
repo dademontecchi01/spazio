@@ -15,17 +15,19 @@
   body { color:#fff; font-family:'Arimo',Helvetica,Arial,sans-serif; min-height:100vh;
          padding:calc(24px + env(safe-area-inset-top)) 28px 40px; font-size:17px; }
   h1 { font-size:1.05rem; font-weight:400; margin-bottom:44px; }
-  .screen { display:none; max-width:480px; margin:0 auto; }
+  .screen { display:none; max-width:520px; margin:0 auto; }
   .screen.on { display:block; }
   .menu button { display:block; width:100%; text-align:left; background:#000; color:#fff;
                  font:inherit; font-size:1.7rem; padding:16px 0; cursor:pointer; }
-  .back { background:#000; color:#fff; font:inherit; font-size:1.05rem; margin-bottom:28px; cursor:pointer; }
-  #preview img, #preview video { width:100%; display:block; max-height:50vh; object-fit:contain; }
+  .back { background:#000; color:#fff; font:inherit; font-size:1.05rem; margin-bottom:24px; cursor:pointer; }
+  #preview img, #preview video { width:100%; display:block; max-height:46vh; object-fit:contain; }
   #preview audio { width:100%; margin:8px 0; }
-  textarea { width:100%; margin-top:26px; background:#000; color:#fff; font:inherit;
-             font-size:1.05rem; min-height:64px; outline:none; caret-color:#fff; resize:none; }
+  textarea { width:100%; margin-top:22px; background:#000; color:#fff; font:inherit;
+             font-size:1.05rem; min-height:60px; outline:none; caret-color:#fff; resize:none; }
   textarea::placeholder { color:#666; }
-  .actions { margin-top:26px; }
+  input.topic { width:100%; margin-top:10px; background:#0c0c0c; color:#fff; font:inherit;
+             font-size:1rem; padding:12px; outline:none; border:1px solid #333; }
+  .actions { margin-top:22px; }
   .actions button { display:block; width:100%; text-align:left; background:#000; color:#fff;
                     font:inherit; font-size:1.25rem; padding:13px 0; cursor:pointer; }
   .dim { color:#666; }
@@ -33,43 +35,79 @@
   #recTime { font-size:3.4rem; font-weight:400; margin:60px 0; font-variant-numeric:tabular-nums; }
   #recLabel { animation:blink 1.2s step-end infinite; }
   @keyframes blink { 50% { opacity:0; } }
-  #history { margin-top:64px; }
+  #history { margin-top:56px; }
   #history .hd { color:#666; font-size:.9rem; margin-bottom:14px; }
   .item { padding:7px 0; font-size:1rem; color:#fff; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   .item span { color:#666; }
   .ver { color:#333; font-size:.8rem; margin-top:40px; }
   #toast { position:fixed; left:0; right:0; bottom:0; background:#fff; color:#000; padding:16px 28px;
-           font-size:1.05rem; transform:translateY(110%); transition:transform .22s; z-index:9; }
+           font-size:1.05rem; transform:translateY(110%); transition:transform .22s; z-index:99; }
   #toast.show { transform:none; }
   input[type=file] { display:none; }
+
+  /* ---- camera live ---- */
+  #cam { position:fixed; inset:0; background:#000; z-index:40; display:none; flex-direction:column; }
+  #cam.on { display:flex; }
+  #camVideo { flex:1; width:100%; object-fit:cover; background:#000; }
+  #camBar { display:flex; align-items:center; justify-content:space-around;
+            padding:18px 20px calc(24px + env(safe-area-inset-bottom)); background:#000; }
+  .cbtn { background:#000; color:#fff; font:inherit; font-size:1rem; cursor:pointer; padding:8px 10px; }
+  #shutter { width:66px; height:66px; border-radius:50%; background:#fff; border:4px solid #444; cursor:pointer; }
+  #shutter.rec { background:#e33; }
+  #camHint { position:absolute; top:calc(14px + env(safe-area-inset-top)); left:0; right:0;
+             text-align:center; color:#fff; font-size:.95rem; text-shadow:0 1px 4px #000; }
+  #camTime { position:absolute; top:calc(44px + env(safe-area-inset-top)); left:0; right:0; text-align:center;
+             color:#e33; font-size:1.4rem; font-variant-numeric:tabular-nums; text-shadow:0 1px 4px #000; display:none; }
+
+  /* ---- annotazione foto ---- */
+  #annWrap { position:relative; width:100%; margin-bottom:6px; }
+  #annCanvas { width:100%; display:block; touch-action:none; max-height:46vh; }
+  #tools { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  .tool { background:#0c0c0c; color:#fff; font:inherit; font-size:.95rem; padding:8px 12px;
+          border:1px solid #333; cursor:pointer; }
+  .tool.sel { border-color:#fff; }
+  .swatch { width:26px; height:26px; border:2px solid #333; cursor:pointer; }
+  .swatch.sel { border-color:#fff; }
+
+  /* ---- recap ---- */
+  .recap { border-top:1px solid #222; padding:16px 0; }
+  .recap .rt { font-size:1.05rem; margin-bottom:6px; }
+  .recap .rb { color:#bbb; font-size:.95rem; white-space:pre-wrap; }
+  .recap .rd { color:#555; font-size:.8rem; margin-top:8px; }
+  .recap a { color:#7ab7ff; }
 </style>
 </head>
 <body>
 
+<!-- HOME -->
 <div id="home" class="screen on">
   <h1>spazio</h1>
   <div class="menu">
-    <button onclick="show('camMenu')">camera</button>
-    <button onclick="galIn.click()">galleria</button>
+    <button onclick="openCamera()">camera</button>
+    <button onclick="albumIn.click()">album</button>
     <button onclick="startRec('main')">voce</button>
     <button onclick="openNote()">note</button>
+    <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v4</div>
+  <div class="ver">v5</div>
 </div>
 
-<div id="camMenu" class="screen">
-  <button class="back" onclick="show('home')">&larr; indietro</button>
-  <div class="menu">
-    <button onclick="sysFoto.click()">foto</button>
-    <button onclick="sysVideo.click()">video</button>
+<input type="file" id="albumIn" accept="image/*,video/*">
+
+<!-- CAMERA LIVE -->
+<div id="cam">
+  <div id="camHint">tocca il cerchio per la foto · tieni premuto per il video</div>
+  <div id="camTime">0:00</div>
+  <video id="camVideo" playsinline autoplay muted></video>
+  <div id="camBar">
+    <button class="cbtn" onclick="closeCamera()">chiudi</button>
+    <div id="shutter"></div>
+    <button class="cbtn" onclick="flipCamera()">gira</button>
   </div>
 </div>
 
-<input type="file" id="sysFoto" accept="image/*" capture="environment">
-<input type="file" id="sysVideo" accept="video/*" capture="environment">
-<input type="file" id="galIn" accept="image/*,video/*">
-
+<!-- VOCE -->
 <div id="recScreen" class="screen">
   <h1 id="recLabel">registrazione</h1>
   <div id="recTime">0:00</div>
@@ -79,9 +117,29 @@
   </div>
 </div>
 
+<!-- EDITOR -->
 <div id="editorScreen" class="screen">
   <button class="back" onclick="reset()">&larr; indietro</button>
+
+  <!-- annotazione foto -->
+  <div id="annWrap" style="display:none">
+    <canvas id="annCanvas"></canvas>
+  </div>
+  <div id="tools" style="display:none">
+    <button class="tool sel" id="tPen" onclick="setTool('pen')">✏️ penna</button>
+    <button class="tool" id="tMark" onclick="setTool('mark')">🖊 evidenzia</button>
+    <span class="swatch sel" style="background:#ff3b30" onclick="setColor(this,'#ff3b30')"></span>
+    <span class="swatch" style="background:#ffcc00" onclick="setColor(this,'#ffcc00')"></span>
+    <span class="swatch" style="background:#34c759" onclick="setColor(this,'#34c759')"></span>
+    <span class="swatch" style="background:#0a84ff" onclick="setColor(this,'#0a84ff')"></span>
+    <span class="swatch" style="background:#ffffff" onclick="setColor(this,'#ffffff')"></span>
+    <button class="tool" onclick="undoStroke()">annulla tratto</button>
+    <button class="tool" onclick="clearStrokes()">pulisci</button>
+  </div>
+
+  <!-- preview per video/voce -->
   <div id="preview"></div>
+
   <textarea id="caption" placeholder="didascalia…" rows="2"></textarea>
   <div id="noteState"></div>
   <div class="actions">
@@ -91,127 +149,225 @@
   </div>
 </div>
 
+<!-- RECAP -->
+<div id="recapScreen" class="screen">
+  <button class="back" onclick="show('home')">&larr; indietro</button>
+  <h1>recap</h1>
+  <div id="topicBox" style="display:none">
+    <div class="dim">Incolla una volta il tuo topic ntfy segreto (te lo dà Claude):</div>
+    <input class="topic" id="topicInput" placeholder="davide-brain-…">
+    <div class="actions"><button onclick="saveTopic()">salva topic</button></div>
+  </div>
+  <div id="recapList"></div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-let current = null, voiceNote = null;
-let rec = null, recChunks = [], recMode = null, recT0 = 0, recTimer = null;
 const $ = id => document.getElementById(id);
 const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+let current = null, voiceNote = null;
+let rec = null, recChunks = [], recMode = null, recT0 = 0, recTimer = null;
 
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
-function setPreview(blob, kind){
-  try {
-    const url = URL.createObjectURL(blob);
-    $('preview').innerHTML =
-      kind==='foto'  ? `<img src="${url}">` :
-      kind==='video' ? `<video src="${url}" controls playsinline preload="metadata"></video>` :
-      kind==='voce'  ? `<audio src="${url}" controls></audio>` : '';
-  } catch(e){ $('preview').innerHTML = '<div class="dim">anteprima non disponibile</div>'; }
+
+/* ================= CAMERA LIVE (getUserMedia) ================= */
+let camStream = null, camFacing = 'environment';
+let vrec = null, vchunks = [], vtimer = null, vt0 = 0, holdTimer = null, isRecording = false;
+
+async function openCamera(){
+  $('cam').classList.add('on');
+  await startStream();
 }
-function openEditor(kind){
-  // "aggiungi nota vocale" solo per catture visive
-  $('noteBtn').style.display = (kind==='foto'||kind==='video') ? 'block' : 'none';
-  show('editorScreen');
+async function startStream(){
+  try {
+    if(camStream) camStream.getTracks().forEach(t=>t.stop());
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode: camFacing }, audio:true
+    });
+    $('camVideo').srcObject = camStream;
+  } catch(e){ toast('fotocamera non disponibile'); closeCamera(); }
+}
+async function flipCamera(){ camFacing = camFacing==='environment' ? 'user' : 'environment'; await startStream(); }
+function closeCamera(){
+  if(isRecording) stopVideo(false);
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  $('cam').classList.remove('on');
+}
+/* foto = tap corto · video = tieni premuto */
+const shutter = $('shutter');
+shutter.addEventListener('pointerdown', ()=>{ holdTimer = setTimeout(startVideo, 300); });
+shutter.addEventListener('pointerup', ()=>{
+  clearTimeout(holdTimer);
+  if(isRecording) stopVideo(true); else takePhoto();
+});
+shutter.addEventListener('pointerleave', ()=>{ clearTimeout(holdTimer); });
+
+function takePhoto(){
+  const v = $('camVideo');
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  c.toBlob(b=>{
+    current = { blob:b, ext:'.jpg', kind:'foto' };
+    closeCamera(); openEditor('foto');
+  }, 'image/jpeg', 0.92);
+}
+function startVideo(){
+  if(!camStream) return;
+  const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+             : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus'
+             : 'video/webm';
+  vrec = new MediaRecorder(camStream, {mimeType:mime}); vchunks=[];
+  vrec.ondataavailable = e => vchunks.push(e.data);
+  vrec.start(250); isRecording = true; shutter.classList.add('rec');
+  $('camHint').style.display='none'; $('camTime').style.display='block'; vt0=Date.now();
+  vtimer = setInterval(()=>{ const s=Math.floor((Date.now()-vt0)/1000);
+    $('camTime').textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); },250);
+}
+function stopVideo(keep){
+  if(!vrec) return; clearInterval(vtimer);
+  const mime = vrec.mimeType || 'video/webm';
+  vrec.onstop = ()=>{
+    isRecording=false; shutter.classList.remove('rec');
+    $('camHint').style.display='block'; $('camTime').style.display='none';
+    const blob = new Blob(vchunks, {type:mime});
+    const ext = mime.includes('mp4') ? '.mp4' : '.webm';
+    vrec=null;
+    if(keep){ current={ blob, ext, kind:'video' }; closeCamera(); openEditor('video'); }
+  };
+  vrec.stop();
 }
 
-/* ---------- camera di sistema + galleria ---------- */
-sysFoto.onchange = e => pickFile(e, 'foto');
-sysVideo.onchange = e => pickFile(e, 'video');
-galIn.onchange  = e => pickFile(e, null);
-function pickFile(e, kind){
+/* ================= ALBUM ================= */
+$('albumIn').onchange = e => {
   try {
     const f = e.target.files[0]; if(!f) return;
-    if(!kind) kind = (f.type||'').startsWith('video') ? 'video' : 'foto';
+    const kind = (f.type||'').startsWith('video') ? 'video' : 'foto';
     const ext = (f.name.match(/\.\w+$/) || [kind==='foto'?'.jpg':'.mp4'])[0];
     current = { blob:f, ext, kind };
-    setPreview(f, kind);
     openEditor(kind);
-  } catch(err){ toast('file non leggibile'); show('home'); }
+  } catch(err){ toast('file non leggibile'); }
   e.target.value = '';
+};
+
+/* ================= EDITOR + ANNOTAZIONE ================= */
+function openEditor(kind){
+  $('noteBtn').style.display = (kind==='foto'||kind==='video') ? 'block' : 'none';
+  if(kind==='foto'){
+    $('annWrap').style.display='block'; $('tools').style.display='flex'; $('preview').innerHTML='';
+    initAnnotation(current.blob);
+  } else {
+    $('annWrap').style.display='none'; $('tools').style.display='none';
+    setPreview(current.blob, kind);
+  }
+  show('editorScreen');
+}
+function setPreview(blob, kind){
+  if(kind==='nota'){ $('preview').innerHTML=''; return; }
+  try { const url = URL.createObjectURL(blob);
+    $('preview').innerHTML = kind==='video'
+      ? `<video src="${url}" controls playsinline preload="metadata"></video>`
+      : kind==='voce' ? `<audio src="${url}" controls></audio>` : '';
+  } catch(e){ $('preview').innerHTML = '<div class="dim">anteprima non disponibile</div>'; }
 }
 
-/* ---------- note di testo ---------- */
-function openNote(){
-  current = { blob:null, ext:'.txt', kind:'nota' };
-  $('preview').innerHTML = '';
-  $('caption').placeholder = 'scrivi la nota…';
-  openEditor('nota');
-  $('caption').focus();
+/* --- disegno su foto: tratti in coordinate normalizzate (0-1) --- */
+let annImg = null, strokes = [], curStroke = null, tool='pen', color='#ff3b30', drawing=false;
+function initAnnotation(blob){
+  strokes = []; annImg = new Image();
+  annImg.onload = ()=>{ layoutCanvas(); redraw(); };
+  annImg.src = URL.createObjectURL(blob);
+}
+function layoutCanvas(){
+  const c = $('annCanvas'); const w = $('annWrap').clientWidth || 480;
+  c.width = w; c.height = Math.round(w * (annImg.height/annImg.width));
+}
+function redraw(){
+  const c = $('annCanvas'), x = c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height);
+  if(annImg) x.drawImage(annImg,0,0,c.width,c.height);
+  for(const s of strokes) drawStroke(x,s,c.width,c.height);
+  if(curStroke) drawStroke(x,curStroke,c.width,c.height);
+}
+function drawStroke(x,s,W,H){
+  x.strokeStyle = s.color; x.lineCap='round'; x.lineJoin='round';
+  x.globalAlpha = s.tool==='mark' ? 0.4 : 1;
+  x.lineWidth = (s.tool==='mark' ? 0.045 : 0.012) * W;
+  x.beginPath();
+  s.pts.forEach((p,i)=>{ const px=p.x*W, py=p.y*H; i? x.lineTo(px,py): x.moveTo(px,py); });
+  x.stroke(); x.globalAlpha = 1;
+}
+function ptFromEvent(e){
+  const c=$('annCanvas'), r=c.getBoundingClientRect();
+  return { x:(e.clientX-r.left)/r.width, y:(e.clientY-r.top)/r.height };
+}
+$('annCanvas').addEventListener('pointerdown', e=>{ drawing=true; curStroke={tool,color,pts:[ptFromEvent(e)]}; });
+$('annCanvas').addEventListener('pointermove', e=>{ if(!drawing) return; curStroke.pts.push(ptFromEvent(e)); redraw(); });
+$('annCanvas').addEventListener('pointerup', ()=>{ if(curStroke){ strokes.push(curStroke); curStroke=null; drawing=false; redraw(); } });
+$('annCanvas').addEventListener('pointerleave', ()=>{ if(curStroke){ strokes.push(curStroke); curStroke=null; drawing=false; redraw(); } });
+function setTool(t){ tool=t; $('tPen').classList.toggle('sel',t==='pen'); $('tMark').classList.toggle('sel',t==='mark'); }
+function setColor(el,c){ color=c; document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel')); el.classList.add('sel'); }
+function undoStroke(){ strokes.pop(); redraw(); }
+function clearStrokes(){ strokes=[]; redraw(); }
+/* compone foto + disegno alla risoluzione nativa */
+function composePhoto(){
+  return new Promise(res=>{
+    if(!annImg || !strokes.length){ res(current.blob); return; }
+    const c=document.createElement('canvas'); c.width=annImg.width; c.height=annImg.height;
+    const x=c.getContext('2d'); x.drawImage(annImg,0,0);
+    for(const s of strokes) drawStroke(x,s,c.width,c.height);
+    c.toBlob(b=>res(b||current.blob),'image/jpeg',0.92);
+  });
 }
 
-/* ---------- registratore vocale ---------- */
+/* ================= NOTE ================= */
+function openNote(){ current={ blob:null, ext:'.txt', kind:'nota' }; $('caption').placeholder='scrivi la nota…'; openEditor('nota'); $('caption').focus(); }
+
+/* ================= VOCE ================= */
 async function startRec(mode){
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
     const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
                : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
-    rec = new MediaRecorder(stream, mime ? {mimeType:mime} : {});
-    recChunks = []; recMode = mode;
-    rec.ondataavailable = e => recChunks.push(e.data);
-    rec._stream = stream;
-    rec.start(250);
-    recT0 = Date.now();
-    show('recScreen');
-    recTimer = setInterval(()=>{
-      const s = Math.floor((Date.now()-recT0)/1000);
-      $('recTime').textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-    },250);
+    rec = new MediaRecorder(stream, mime ? {mimeType:mime} : {}); recChunks=[]; recMode=mode;
+    rec.ondataavailable = e => recChunks.push(e.data); rec._stream = stream;
+    rec.start(250); recT0 = Date.now(); show('recScreen');
+    recTimer = setInterval(()=>{ const s=Math.floor((Date.now()-recT0)/1000);
+      $('recTime').textContent = Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); },250);
   } catch(err){ toast('microfono non disponibile'); }
 }
 function stopRec(keep){
-  clearInterval(recTimer);
-  if(!rec) return;
+  clearInterval(recTimer); if(!rec) return;
   rec.onstop = () => {
     rec._stream.getTracks().forEach(t=>t.stop());
     const blob = new Blob(recChunks, {type: rec.mimeType || 'audio/webm'});
     const ext = (rec.mimeType||'').includes('mp4') ? '.m4a' : '.webm';
     if(!keep){ recMode==='main' ? show('home') : show('editorScreen'); rec=null; return; }
-    if(recMode==='main'){
-      current = { blob, ext, kind:'voce' };
-      setPreview(blob,'voce');
-      openEditor('voce');
-    } else {
-      voiceNote = { blob, ext };
-      $('noteState').textContent = 'nota vocale allegata · ' + $('recTime').textContent;
-      $('noteBtn').textContent = 'rimuovi nota vocale';
-      show('editorScreen');
-    }
+    if(recMode==='main'){ current={ blob, ext, kind:'voce' }; openEditor('voce'); }
+    else { voiceNote={ blob, ext }; $('noteState').textContent='nota vocale allegata · '+$('recTime').textContent;
+           $('noteBtn').textContent='rimuovi nota vocale'; show('editorScreen'); }
     rec = null;
   };
   rec.stop();
 }
-function toggleNote(){
-  if(voiceNote){ voiceNote=null; $('noteState').textContent=''; $('noteBtn').textContent='aggiungi nota vocale'; }
-  else startRec('attach');
-}
+function toggleNote(){ if(voiceNote){ voiceNote=null; $('noteState').textContent=''; $('noteBtn').textContent='aggiungi nota vocale'; } else startRec('attach'); }
 
-/* ---------- salvataggio ---------- */
-function stamp(){
-  const d=new Date(), p=n=>String(n).padStart(2,'0');
-  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
-}
-function blobToB64(blob){
-  return new Promise((res,rej)=>{ const r=new FileReader();
-    r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); });
-}
+/* ================= SALVATAGGIO ================= */
+function stamp(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds()); }
+function blobToB64(blob){ return new Promise((res,rej)=>{ const r=new FileReader();
+  r.onload=()=>res(r.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(blob); }); }
 async function saveBlob(blob, name){
   if(NATIVE){
-    const Filesystem = Capacitor.Plugins.Filesystem;
-    const data = await blobToB64(blob);
+    const Filesystem = Capacitor.Plugins.Filesystem; const data = await blobToB64(blob);
     for(const directory of ['EXTERNAL_STORAGE','DOCUMENTS']){
-      try {
-        await Filesystem.writeFile({ path:'spazio-inbox/'+name, data, directory, recursive:true });
-        return true;
-      } catch(e){ }
+      try { await Filesystem.writeFile({ path:'spazio-inbox/'+name, data, directory, recursive:true }); return true; } catch(e){}
     }
     throw new Error('storage');
   } else {
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob); a.download=name;
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},3000);
-    return true;
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+    document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},3000); return true;
   }
 }
 async function salva(){
@@ -220,20 +376,19 @@ async function salva(){
   if(current.kind==='nota' && !cap){ toast('scrivi qualcosa prima di salvare'); return; }
   const stem = 'es_'+stamp();
   try {
-    if(current.blob) await saveBlob(current.blob, stem+current.ext);
+    let blob = current.blob;
+    if(current.kind==='foto') blob = await composePhoto();   // foto = con annotazioni
+    if(blob) await saveBlob(blob, stem+current.ext);
     if(cap) await saveBlob(new Blob([cap+'\n\n['+current.kind+' · '+new Date().toISOString()+']'],{type:'text/plain'}), stem+'.txt');
     if(voiceNote) await saveBlob(voiceNote.blob, stem+'_nota'+voiceNote.ext);
     addHistory({stem, kind:current.kind, cap});
-    toast('salvato — in coda per l\'inbox');
-    reset();
-  } catch(e){
-    toast(NATIVE ? 'concedi "accesso a tutti i file" nelle impostazioni app' : 'salvataggio fallito');
-  }
+    toast('salvato — in coda per l\'inbox'); reset();
+  } catch(e){ toast(NATIVE ? 'concedi "accesso a tutti i file" nelle impostazioni app' : 'salvataggio fallito'); }
 }
 
-/* ---------- UI ---------- */
+/* ================= UI ================= */
 function reset(){
-  current=null; voiceNote=null;
+  current=null; voiceNote=null; strokes=[]; curStroke=null;
   $('caption').value=''; $('caption').placeholder='didascalia…';
   $('noteState').textContent=''; $('noteBtn').textContent='aggiungi nota vocale';
   $('preview').innerHTML=''; show('home');
@@ -250,7 +405,39 @@ function renderHistory(){
 }
 renderHistory();
 
+/* ================= RECAP (ntfy dentro l'app) ================= */
+function openRecap(){
+  show('recapScreen');
+  if(!localStorage.ntfyTopic){ $('topicBox').style.display='block'; $('recapList').innerHTML=''; return; }
+  $('topicBox').style.display='none'; loadRecaps();
+}
+function saveTopic(){
+  const t = $('topicInput').value.trim().replace(/^.*ntfy\.sh\//,'');
+  if(!t){ toast('incolla il topic'); return; }
+  localStorage.ntfyTopic = t; $('topicBox').style.display='none'; loadRecaps();
+}
+async function loadRecaps(){
+  const topic = localStorage.ntfyTopic;
+  $('recapList').innerHTML = '<div class="dim">carico…</div>';
+  try {
+    const r = await fetch(`https://ntfy.sh/${topic}/json?poll=1`);
+    const txt = await r.text();
+    const msgs = txt.trim().split('\n').map(l=>{try{return JSON.parse(l)}catch(e){return null}})
+                    .filter(m=>m && m.event==='message');
+    msgs.reverse();
+    if(!msgs.length){ $('recapList').innerHTML='<div class="dim">nessun recap recente</div>'; return; }
+    $('recapList').innerHTML = msgs.map(m=>{
+      const when = new Date((m.time||0)*1000).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const att = m.attachment ? `<div><a href="${m.attachment.url}" target="_blank">📄 ${m.attachment.name||'apri allegato'}</a></div>` : '';
+      return `<div class="recap"><div class="rt">${esc(m.title||'recap')}</div>
+        <div class="rb">${esc(m.message||'')}</div>${att}<div class="rd">${when}</div></div>`;
+    }).join('');
+  } catch(e){ $('recapList').innerHTML='<div class="dim">errore di rete — riprova</div>'; }
+}
+function esc(s){ return (s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
 if(!NATIVE && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+window.addEventListener('resize', ()=>{ if($('annWrap').style.display==='block' && annImg){ layoutCanvas(); redraw(); } });
 </script>
 </body>
 </html>
