@@ -46,8 +46,10 @@
   input[type=file] { display:none; }
 
   /* ---- annotazione foto ---- */
-  #annWrap { position:relative; width:100%; margin-bottom:6px; }
-  #annCanvas { width:100%; display:block; touch-action:none; max-height:46vh; }
+  #annWrap { position:relative; width:100%; margin-bottom:6px; text-align:center; }
+  /* niente width:100% forzato: max-width + max-height scalano la foto SENZA deformarla
+     (il mapping dei tratti usa getBoundingClientRect, quindi resta corretto). */
+  #annCanvas { display:inline-block; max-width:100%; max-height:60vh; touch-action:none; }
   #tools { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:12px; }
   .tool { background:#0c0c0c; color:#fff; font:inherit; font-size:.95rem; padding:8px 12px;
           border:1px solid #333; cursor:pointer; }
@@ -70,18 +72,21 @@
   <h1>spazio</h1>
   <div class="menu">
     <button onclick="cameraIn.click()">camera</button>
+    <button onclick="videoIn.click()">video</button>
     <button onclick="albumIn.click()">album</button>
     <button onclick="startRec('main')">voce</button>
     <button onclick="openNote()">note</button>
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v6</div>
+  <div class="ver">v7</div>
 </div>
 
-<!-- "camera" apre l'app fotocamera di sistema (Fotocamera / Snapdragon) via capture;
-     "album" pesca da media esistenti. La foto che torna passa all'editor di annotazione. -->
-<input type="file" id="cameraIn" accept="image/*,video/*" capture="environment">
+<!-- "camera"/"video" aprono l'app di sistema (Fotocamera / Snapdragon) via capture.
+     UN SOLO MIME per input, altrimenti Chrome ignora capture e apre la galleria.
+     "album" pesca da media esistenti. Il file che torna passa all'editor. -->
+<input type="file" id="cameraIn" accept="image/*" capture="environment">
+<input type="file" id="videoIn" accept="video/*" capture="environment">
 <input type="file" id="albumIn" accept="image/*,video/*">
 
 <!-- VOCE -->
@@ -162,6 +167,7 @@ function handleFile(f){
   } catch(err){ toast('file non leggibile'); }
 }
 $('cameraIn').onchange = e => { handleFile(e.target.files[0]); e.target.value=''; };
+$('videoIn').onchange  = e => { handleFile(e.target.files[0]); e.target.value=''; };
 $('albumIn').onchange  = e => { handleFile(e.target.files[0]); e.target.value=''; };
 
 /* ================= EDITOR + ANNOTAZIONE ================= */
