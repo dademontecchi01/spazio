@@ -46,9 +46,10 @@
   input[type=file] { display:none; }
 
   /* ---- fotocamera in-app (getUserMedia) ---- */
-  #cam { position:fixed; inset:0; background:#000; z-index:40; display:none; flex-direction:column; }
+  #cam { position:fixed; inset:0; height:100dvh; overflow:hidden; background:#000; z-index:40; display:none; flex-direction:column; }
   #cam.on { display:flex; }
-  #camVideo { flex:1; width:100%; object-fit:cover; background:#000; }
+  /* min-height:0 è essenziale: senza, il <video> flex non si rimpicciolisce e sfora (scrollbar) */
+  #camVideo { flex:1; min-height:0; width:100%; object-fit:cover; background:#000; }
   #camBar { display:flex; align-items:center; justify-content:space-around;
             padding:18px 20px calc(24px + env(safe-area-inset-bottom)); background:#000; }
   .cbtn { background:#000; color:#fff; font:inherit; font-size:1rem; cursor:pointer; padding:8px 14px; }
@@ -90,7 +91,7 @@
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v11</div>
+  <div class="ver">v12</div>
 </div>
 
 <!-- "album" pesca dalla galleria. La fotocamera NON usa un file input (Android 14
@@ -178,9 +179,13 @@ function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.r
 let camStream = null, camFacing = 'environment';
 async function openCamera(){
   $('cam').classList.add('on');
+  document.body.style.overflow = 'hidden';   // niente scroll dietro l'overlay
   try {
     if(camStream) camStream.getTracks().forEach(t=>t.stop());
-    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:camFacing } }, audio:false });
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ ideal:camFacing }, width:{ ideal:1280 }, height:{ ideal:720 } },
+      audio:false
+    });
     $('camVideo').srcObject = camStream;
   } catch(e){ toast('concedi il permesso fotocamera'); closeCamera(); }
 }
@@ -188,6 +193,7 @@ async function flipCamera(){ camFacing = camFacing==='environment' ? 'user' : 'e
 function closeCamera(){
   if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
   $('cam').classList.remove('on');
+  document.body.style.overflow = '';
 }
 function takePhoto(){
   const v = $('camVideo');

@@ -2,7 +2,7 @@
 // Prima prova la rete (così hai sempre l'ultima versione), poi ripiega sulla
 // cache solo se sei offline. Il vecchio SW era cache-first: ti serviva sempre
 // la pagina vecchia e gli aggiornamenti non arrivavano mai.
-const C = 'spazio-v11';
+const C = 'spazio-v12';
 const SHELL = ['.', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(C).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
