@@ -78,12 +78,14 @@
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v9</div>
+  <div class="ver">v10</div>
 </div>
 
-<!-- "camera" = configurazione della v1 (quella che apriva la fotocamera):
-     accept="image/*" + capture="environment". "album" pesca dalla galleria. -->
-<input type="file" id="cameraIn" accept="image/*" capture="environment">
+<!-- "camera": NESSUN accept e NESSUN capture. Su Android 14 accept="image/*"
+     dirotta al Photo Picker (solo galleria, niente fotocamera). Senza accept,
+     Chrome usa il chooser "apri con" classico, che include la Fotocamera.
+     "album" resta media-only per pescare dalla galleria. -->
+<input type="file" id="cameraIn">
 <input type="file" id="albumIn" accept="image/*,video/*">
 
 <!-- VOCE -->
