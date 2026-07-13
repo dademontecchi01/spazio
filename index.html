@@ -78,14 +78,12 @@
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v8</div>
+  <div class="ver">v9</div>
 </div>
 
-<!-- "camera": input SENZA accept/capture -> Android mostra il selettore "apri con"
-     (Fotocamera / Snapdragon / file) e scegli tu la fotocamera. Con accept="image/*"
-     il telefono forzava il Photo Picker (solo galleria): per quello apriva le foto.
-     "album" resta media-only e pesca dalla galleria. -->
-<input type="file" id="cameraIn">
+<!-- "camera" = configurazione della v1 (quella che apriva la fotocamera):
+     accept="image/*" + capture="environment". "album" pesca dalla galleria. -->
+<input type="file" id="cameraIn" accept="image/*" capture="environment">
 <input type="file" id="albumIn" accept="image/*,video/*">
 
 <!-- VOCE -->
