@@ -3,6 +3,10 @@
   "appName": "spazio",
   "webDir": "www",
   "backgroundColor": "#000000",
+  "server": {
+    "url": "https://dademontecchi01.github.io/spazio/",
+    "cleartext": false
+  },
   "android": {
     "backgroundColor": "#000000",
     "allowMixedContent": false

@@ -91,7 +91,7 @@
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v12</div>
+  <div class="ver">v13</div>
 </div>
 
 <!-- "album" pesca dalla galleria. La fotocamera NON usa un file input (Android 14
@@ -178,6 +178,17 @@ function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.r
    affidabile da PWA è aprire lo stream in-app. tap sul cerchio = scatto. */
 let camStream = null, camFacing = 'environment';
 async function openCamera(){
+  // APK (Capacitor): usa la FOTOCAMERA NATIVA del telefono — nessun rendering a nostro
+  // carico (il Light Phone la regge perché è la sua) e bypassa il Photo Picker.
+  const Cam = NATIVE && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera;
+  if(Cam){
+    try {
+      const photo = await Cam.getPhoto({ quality:90, source:'CAMERA', resultType:'dataUrl', saveToGallery:false, correctOrientation:true });
+      if(photo && photo.dataUrl){ current={ blob:dataUrlToBlob(photo.dataUrl), ext:'.jpg', kind:'foto' }; openEditor('foto'); }
+    } catch(e){ /* annullato dall'utente: nessun errore */ }
+    return;
+  }
+  // Browser normale (PWA): fotocamera live in-page (getUserMedia)
   $('cam').classList.add('on');
   document.body.style.overflow = 'hidden';   // niente scroll dietro l'overlay
   try {
@@ -188,6 +199,13 @@ async function openCamera(){
     });
     $('camVideo').srcObject = camStream;
   } catch(e){ toast('concedi il permesso fotocamera'); closeCamera(); }
+}
+function dataUrlToBlob(durl){
+  const [head, b64] = durl.split(',');
+  const mime = (head.match(/:(.*?);/) || [])[1] || 'image/jpeg';
+  const bin = atob(b64), arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type:mime });
 }
 async function flipCamera(){ camFacing = camFacing==='environment' ? 'user' : 'environment'; await openCamera(); }
 function closeCamera(){
