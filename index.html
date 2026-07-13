@@ -45,6 +45,18 @@
   #toast.show { transform:none; }
   input[type=file] { display:none; }
 
+  /* ---- fotocamera in-app (getUserMedia) ---- */
+  #cam { position:fixed; inset:0; background:#000; z-index:40; display:none; flex-direction:column; }
+  #cam.on { display:flex; }
+  #camVideo { flex:1; width:100%; object-fit:cover; background:#000; }
+  #camBar { display:flex; align-items:center; justify-content:space-around;
+            padding:18px 20px calc(24px + env(safe-area-inset-bottom)); background:#000; }
+  .cbtn { background:#000; color:#fff; font:inherit; font-size:1rem; cursor:pointer; padding:8px 14px; }
+  #shutter { width:70px; height:70px; border-radius:50%; background:#fff; border:4px solid #444; cursor:pointer; }
+  #shutter:active { transform:scale(.92); }
+  #camHint { position:absolute; top:calc(14px + env(safe-area-inset-top)); left:0; right:0;
+             text-align:center; color:#fff; font-size:.95rem; text-shadow:0 1px 4px #000; }
+
   /* ---- annotazione foto ---- */
   #annWrap { position:relative; width:100%; margin-bottom:6px; text-align:center; }
   /* niente width:100% forzato: max-width + max-height scalano la foto SENZA deformarla
@@ -71,22 +83,30 @@
 <div id="home" class="screen on">
   <h1>spazio</h1>
   <div class="menu">
-    <button onclick="cameraIn.click()">camera</button>
+    <button onclick="openCamera()">camera</button>
     <button onclick="albumIn.click()">album</button>
     <button onclick="startRec('main')">voce</button>
     <button onclick="openNote()">note</button>
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v10</div>
+  <div class="ver">v11</div>
 </div>
 
-<!-- "camera": NESSUN accept e NESSUN capture. Su Android 14 accept="image/*"
-     dirotta al Photo Picker (solo galleria, niente fotocamera). Senza accept,
-     Chrome usa il chooser "apri con" classico, che include la Fotocamera.
-     "album" resta media-only per pescare dalla galleria. -->
-<input type="file" id="cameraIn">
+<!-- "album" pesca dalla galleria. La fotocamera NON usa un file input (Android 14
+     lo dirotta al Photo Picker, senza camera): usa getUserMedia in-app (overlay #cam). -->
 <input type="file" id="albumIn" accept="image/*,video/*">
+
+<!-- FOTOCAMERA IN-APP (getUserMedia) — l'unica via non bloccata da Android 14 -->
+<div id="cam">
+  <div id="camHint">tocca il cerchio per scattare</div>
+  <video id="camVideo" playsinline autoplay muted></video>
+  <div id="camBar">
+    <button class="cbtn" onclick="closeCamera()">chiudi</button>
+    <div id="shutter" onclick="takePhoto()"></div>
+    <button class="cbtn" onclick="flipCamera()">gira</button>
+  </div>
+</div>
 
 <!-- VOCE -->
 <div id="recScreen" class="screen">
@@ -152,10 +172,33 @@ let rec = null, recChunks = [], recMode = null, recT0 = 0, recTimer = null;
 
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); }
 
-/* ============ INGRESSO FILE: camera di sistema + album ============ */
-/* "camera" apre l'app fotocamera nativa (Fotocamera / Snapdragon Camera) via
-   <input capture>; "album" pesca da media esistenti. Il file che torna entra
-   nell'editor: foto → annotazione (penna/evidenziatore + didascalia), video → anteprima. */
+/* ============ FOTOCAMERA IN-APP (getUserMedia) ============ */
+/* Android 14 dirotta i file-input al Photo Picker (niente fotocamera): l'unica via
+   affidabile da PWA è aprire lo stream in-app. tap sul cerchio = scatto. */
+let camStream = null, camFacing = 'environment';
+async function openCamera(){
+  $('cam').classList.add('on');
+  try {
+    if(camStream) camStream.getTracks().forEach(t=>t.stop());
+    camStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:camFacing } }, audio:false });
+    $('camVideo').srcObject = camStream;
+  } catch(e){ toast('concedi il permesso fotocamera'); closeCamera(); }
+}
+async function flipCamera(){ camFacing = camFacing==='environment' ? 'user' : 'environment'; await openCamera(); }
+function closeCamera(){
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  $('cam').classList.remove('on');
+}
+function takePhoto(){
+  const v = $('camVideo');
+  if(!v.videoWidth){ toast('un attimo, sto mettendo a fuoco…'); return; }
+  const c = document.createElement('canvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  c.toBlob(b=>{ current = { blob:b, ext:'.jpg', kind:'foto' }; closeCamera(); openEditor('foto'); }, 'image/jpeg', 0.92);
+}
+
+/* ============ ALBUM (media esistenti) ============ */
 function handleFile(f){
   try {
     if(!f) return;
@@ -165,8 +208,7 @@ function handleFile(f){
     openEditor(kind);
   } catch(err){ toast('file non leggibile'); }
 }
-$('cameraIn').onchange = e => { handleFile(e.target.files[0]); e.target.value=''; };
-$('albumIn').onchange  = e => { handleFile(e.target.files[0]); e.target.value=''; };
+$('albumIn').onchange = e => { handleFile(e.target.files[0]); e.target.value=''; };
 
 /* ================= EDITOR + ANNOTAZIONE ================= */
 function openEditor(kind){
