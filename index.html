@@ -72,21 +72,20 @@
   <h1>spazio</h1>
   <div class="menu">
     <button onclick="cameraIn.click()">camera</button>
-    <button onclick="videoIn.click()">video</button>
     <button onclick="albumIn.click()">album</button>
     <button onclick="startRec('main')">voce</button>
     <button onclick="openNote()">note</button>
     <button onclick="openRecap()">recap</button>
   </div>
   <div id="history"><div class="hd">recenti</div><div id="items"></div></div>
-  <div class="ver">v7</div>
+  <div class="ver">v8</div>
 </div>
 
-<!-- "camera"/"video" aprono l'app di sistema (Fotocamera / Snapdragon) via capture.
-     UN SOLO MIME per input, altrimenti Chrome ignora capture e apre la galleria.
-     "album" pesca da media esistenti. Il file che torna passa all'editor. -->
-<input type="file" id="cameraIn" accept="image/*" capture="environment">
-<input type="file" id="videoIn" accept="video/*" capture="environment">
+<!-- "camera": input SENZA accept/capture -> Android mostra il selettore "apri con"
+     (Fotocamera / Snapdragon / file) e scegli tu la fotocamera. Con accept="image/*"
+     il telefono forzava il Photo Picker (solo galleria): per quello apriva le foto.
+     "album" resta media-only e pesca dalla galleria. -->
+<input type="file" id="cameraIn">
 <input type="file" id="albumIn" accept="image/*,video/*">
 
 <!-- VOCE -->
@@ -167,7 +166,6 @@ function handleFile(f){
   } catch(err){ toast('file non leggibile'); }
 }
 $('cameraIn').onchange = e => { handleFile(e.target.files[0]); e.target.value=''; };
-$('videoIn').onchange  = e => { handleFile(e.target.files[0]); e.target.value=''; };
 $('albumIn').onchange  = e => { handleFile(e.target.files[0]); e.target.value=''; };
 
 /* ================= EDITOR + ANNOTAZIONE ================= */
